@@ -30,6 +30,7 @@ const models: VideoModel[] = [
     // --- Kling 2.6 Motion Control Pro ---
     // Docs: POST /v1/ai/video/kling-v2-6-motion-control-pro
     // Status: GET /v1/ai/image-to-video/kling-v2-6/{task-id}
+    // Body params: image_url, video_url, prompt, character_orientation (video|image), cfg_scale
     {
         id: 'kling-v2-6-motion-control-pro',
         name: 'Kling Motion Control Pro',
@@ -40,14 +41,14 @@ const models: VideoModel[] = [
         description: 'Transfer motion from a reference video to a character image — preserves appearance with Pro quality',
         fields: [
             {
-                name: 'character_image', label: 'Character Image URL', type: 'url',
+                name: 'image_url', label: 'Character Image URL', type: 'url',
                 required: true, placeholder: 'https://example.com/character.jpg',
-                helpText: 'Publicly accessible image URL (JPG, PNG)'
+                helpText: 'Publicly accessible URL · JPG/PNG/WEBP · min 300×300px · max 10MB'
             },
             {
-                name: 'reference_video', label: 'Reference Video URL', type: 'url',
+                name: 'video_url', label: 'Reference Video URL', type: 'url',
                 required: true, placeholder: 'https://example.com/motion.mp4',
-                helpText: 'MP4/MOV/WEBM, 3-30 seconds, publicly accessible'
+                helpText: 'MP4/MOV/WEBM/M4V · 3–30 seconds · publicly accessible'
             },
             {
                 name: 'prompt', label: 'Prompt (Optional)', type: 'textarea',
@@ -55,25 +56,24 @@ const models: VideoModel[] = [
                 helpText: 'Max 2500 characters'
             },
             {
-                name: 'character_orientation', label: 'Character Orientation', type: 'select',
+                name: 'character_orientation', label: 'Output Orientation', type: 'select',
                 options: [
-                    { label: 'Video (match reference video, max 30s)', value: 'video' },
-                    { label: 'Landscape (16:9)', value: 'landscape' },
-                    { label: 'Portrait (9:16)', value: 'portrait' },
-                    { label: 'Square (1:1)', value: 'square' },
+                    { label: 'Video — matches reference video orientation (max 30s)', value: 'video' },
+                    { label: 'Image — matches character image orientation (max 10s)', value: 'image' },
                 ],
                 defaultValue: 'video'
             },
             {
                 name: 'cfg_scale', label: 'CFG Scale', type: 'number',
                 defaultValue: 0.5, min: 0, max: 1, step: 0.1,
-                helpText: 'Higher = stronger prompt adherence'
+                helpText: 'Higher = stronger prompt adherence (0.0 – 1.0)'
             },
         ]
     },
     // --- Kling 2.6 Motion Control Standard ---
     // Docs: POST /v1/ai/video/kling-v2-6-motion-control-std
     // Status: GET /v1/ai/image-to-video/kling-v2-6/{task-id}
+    // Body params: image_url, video_url, prompt, character_orientation (video|image), cfg_scale
     {
         id: 'kling-v2-6-motion-control-std',
         name: 'Kling Motion Control Standard',
@@ -84,14 +84,14 @@ const models: VideoModel[] = [
         description: 'Standard quality motion transfer — faster processing, more affordable',
         fields: [
             {
-                name: 'character_image', label: 'Character Image URL', type: 'url',
+                name: 'image_url', label: 'Character Image URL', type: 'url',
                 required: true, placeholder: 'https://example.com/character.jpg',
-                helpText: 'Publicly accessible image URL (JPG, PNG)'
+                helpText: 'Publicly accessible URL · JPG/PNG/WEBP · min 300×300px · max 10MB'
             },
             {
-                name: 'reference_video', label: 'Reference Video URL', type: 'url',
+                name: 'video_url', label: 'Reference Video URL', type: 'url',
                 required: true, placeholder: 'https://example.com/motion.mp4',
-                helpText: 'MP4/MOV/WEBM, 3-30 seconds, publicly accessible'
+                helpText: 'MP4/MOV/WEBM/M4V · 3–30 seconds · publicly accessible'
             },
             {
                 name: 'prompt', label: 'Prompt (Optional)', type: 'textarea',
@@ -99,19 +99,17 @@ const models: VideoModel[] = [
                 helpText: 'Max 2500 characters'
             },
             {
-                name: 'character_orientation', label: 'Character Orientation', type: 'select',
+                name: 'character_orientation', label: 'Output Orientation', type: 'select',
                 options: [
-                    { label: 'Video (match reference video, max 30s)', value: 'video' },
-                    { label: 'Landscape (16:9)', value: 'landscape' },
-                    { label: 'Portrait (9:16)', value: 'portrait' },
-                    { label: 'Square (1:1)', value: 'square' },
+                    { label: 'Video — matches reference video orientation (max 30s)', value: 'video' },
+                    { label: 'Image — matches character image orientation (max 10s)', value: 'image' },
                 ],
                 defaultValue: 'video'
             },
             {
                 name: 'cfg_scale', label: 'CFG Scale', type: 'number',
                 defaultValue: 0.5, min: 0, max: 1, step: 0.1,
-                helpText: 'Higher = stronger prompt adherence'
+                helpText: 'Higher = stronger prompt adherence (0.0 – 1.0)'
             },
         ]
     },
