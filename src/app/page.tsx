@@ -277,7 +277,7 @@ export default function HomePage() {
     <div className="app-container">
       {/* Header */}
       <header className="header">
-        <div className="header-icon">🎭</div>
+        <div className="header-icon"><img src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExYjg0cmR2eTluZjU5eGd2eGszaDA1MGk4b2p5YWZqdmFzZTFwbXR4YiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/dXlUFmuOWFRlHYgc9i/giphy.gif" alt="Kling Motion" className="header-logo" /></div>
         <h1>Kling Motion Control</h1>
         <p>Transfer motion from reference videos to character images — powered by Kling 2.6 AI</p>
       </header>

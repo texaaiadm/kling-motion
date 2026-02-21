@@ -87,10 +87,16 @@ body::before {
 }
 
 .header-icon {
-  font-size: 3.2rem;
   margin-bottom: 12px;
   filter: drop-shadow(0 0 24px rgba(168, 85, 247, 0.5));
   animation: float 3s ease-in-out infinite;
+}
+
+.header-logo {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
 }
 
 @keyframes float {
