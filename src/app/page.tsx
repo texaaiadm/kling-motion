@@ -301,7 +301,7 @@ export default function HomePage() {
       {apiKeySaved && (
         <div className="api-key-section fade-in" style={{ borderColor: 'rgba(34,197,94,0.2)', background: 'rgba(34,197,94,0.05)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <label style={{ color: 'var(--success)', marginBottom: 0 }}>✅ API Key tersimpan</label>
+            <label style={{ color: 'var(--success)', marginBottom: 0 }}>✅ TOKEN TERSIMPAN</label>
             <button className="api-key-btn" style={{ borderColor: 'rgba(34,197,94,0.3)', color: 'var(--success)', background: 'rgba(34,197,94,0.1)' }}
               onClick={() => { setApiKeySaved(false); }}>
               Ubah
