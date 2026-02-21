@@ -285,14 +285,14 @@ export default function HomePage() {
       {/* API Key */}
       {!apiKeySaved && (
         <div className="api-key-section fade-in">
-          <label>🔑 Freepik API Key (disimpan di browser lokal Anda)</label>
+          <label>🔑 Token Dari Admin TEXA</label>
           <div className="api-key-row">
             <input
               type="password"
               className="form-input"
               value={apiKey}
               onChange={e => setApiKey(e.target.value)}
-              placeholder="Masukkan API key Freepik Anda..."
+              placeholder="Masukkan token dari admin TEXA..."
             />
             <button className="api-key-btn" onClick={saveApiKey}>Simpan</button>
           </div>
