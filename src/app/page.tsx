@@ -20,6 +20,12 @@ interface HistoryItem {
   timestamp: number;
 }
 
+interface UploadState {
+  uploading: boolean;
+  progress: string;
+  fileName?: string;
+}
+
 export default function HomePage() {
   const models = getAllModels();
   const [selectedModel, setSelectedModel] = useState<VideoModel>(models[0]);
@@ -30,6 +36,7 @@ export default function HomePage() {
   const [error, setError] = useState<string | null>(null);
   const [apiKey, setApiKey] = useState('');
   const [apiKeySaved, setApiKeySaved] = useState(false);
+  const [uploadStates, setUploadStates] = useState<Record<string, UploadState>>({});
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollErrorCountRef = useRef(0);
 
@@ -43,6 +50,7 @@ export default function HomePage() {
     setFormData(defaults);
     setError(null);
     setCurrentTask(null);
+    setUploadStates({});
     if (pollRef.current) clearInterval(pollRef.current);
   }, [selectedModel]);
 
@@ -61,6 +69,44 @@ export default function HomePage() {
 
   const updateField = (name: string, value: unknown) => {
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleFileUpload = async (fieldName: string, file: File) => {
+    setUploadStates(prev => ({
+      ...prev,
+      [fieldName]: { uploading: true, progress: 'Mengunggah...', fileName: file.name }
+    }));
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const result = await res.json();
+
+      if (!res.ok) {
+        setUploadStates(prev => ({
+          ...prev,
+          [fieldName]: { uploading: false, progress: result.error || 'Upload gagal' }
+        }));
+        return;
+      }
+
+      updateField(fieldName, result.url);
+      setUploadStates(prev => ({
+        ...prev,
+        [fieldName]: { uploading: false, progress: 'Berhasil!', fileName: file.name }
+      }));
+    } catch {
+      setUploadStates(prev => ({
+        ...prev,
+        [fieldName]: { uploading: false, progress: 'Upload gagal — koneksi error' }
+      }));
+    }
   };
 
   const pollTaskStatus = useCallback(async (taskId: string, modelId: string) => {
@@ -245,6 +291,63 @@ export default function HomePage() {
       );
     }
 
+    // URL fields with file upload support
+    if (field.type === 'url') {
+      const uploadState = uploadStates[field.name];
+      const isImage = field.name.includes('image');
+      const acceptTypes = isImage ? 'image/jpeg,image/png,image/webp' : 'video/mp4,video/quicktime,video/webm,video/x-m4v';
+
+      return (
+        <div className="form-group" key={field.name}>
+          <label className="form-label">
+            {field.label}
+            {field.required && <span className="required">*</span>}
+          </label>
+
+          {/* URL Input */}
+          <input
+            type="url"
+            className="form-input"
+            value={String(value ?? '')}
+            onChange={e => updateField(field.name, e.target.value)}
+            placeholder={field.placeholder}
+          />
+
+          {/* Upload Button */}
+          <div className="upload-section">
+            <label className={`upload-btn ${uploadState?.uploading ? 'uploading' : ''}`}>
+              {uploadState?.uploading ? (
+                <><span className="spinner-sm" /> {uploadState.progress}</>
+              ) : (
+                <>{isImage ? '📷' : '🎥'} Unggah dari perangkat</>
+              )}
+              <input
+                type="file"
+                accept={acceptTypes}
+                style={{ display: 'none' }}
+                disabled={uploadState?.uploading}
+                onChange={e => {
+                  const file = e.target.files?.[0];
+                  if (file) handleFileUpload(field.name, file);
+                  e.target.value = '';
+                }}
+              />
+            </label>
+            {uploadState?.fileName && !uploadState.uploading && (
+              <span className={`upload-status ${uploadState.progress === 'Berhasil!' ? 'success' : 'error'}`}>
+                {uploadState.progress === 'Berhasil!'
+                  ? `✅ ${uploadState.fileName}`
+                  : `❌ ${uploadState.progress}`
+                }
+              </span>
+            )}
+          </div>
+
+          {field.helpText && <span className="form-help">{field.helpText}</span>}
+        </div>
+      );
+    }
+
     return (
       <div className="form-group" key={field.name}>
         <label className="form-label">
@@ -252,7 +355,7 @@ export default function HomePage() {
           {field.required && <span className="required">*</span>}
         </label>
         <input
-          type={field.type === 'url' ? 'url' : 'text'}
+          type="text"
           className="form-input"
           value={String(value ?? '')}
           onChange={e => updateField(field.name, e.target.value)}
