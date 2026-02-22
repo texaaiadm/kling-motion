@@ -113,8 +113,7 @@ export default function HomePage() {
   const pollTaskStatus = useCallback(async (taskId: string, modelId: string) => {
     try {
       const headers: Record<string, string> = {};
-      const savedKey = localStorage.getItem('freepik_api_key');
-      if (savedKey) headers['x-api-key'] = savedKey;
+      if (apiKey) headers['x-api-key'] = apiKey;
 
       const res = await fetch(`/api/status?model=${modelId}&taskId=${taskId}`, { headers });
 
@@ -155,7 +154,7 @@ export default function HomePage() {
       pollErrorCountRef.current++;
       console.error('Poll error:', err);
     }
-  }, [selectedModel.name, formData.prompt]);
+  }, [selectedModel.name, formData.prompt, apiKey]);
 
   const handleGenerate = async () => {
     setError(null);
@@ -166,8 +165,7 @@ export default function HomePage() {
 
     try {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      const savedKey = localStorage.getItem('freepik_api_key');
-      if (savedKey) headers['x-api-key'] = savedKey;
+      if (apiKey) headers['x-api-key'] = apiKey;
 
       const res = await fetch('/api/generate', {
         method: 'POST',
