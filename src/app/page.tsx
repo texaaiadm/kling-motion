@@ -164,13 +164,43 @@ export default function HomePage() {
     if (pollRef.current) clearInterval(pollRef.current);
 
     try {
+      const sanitizeValue = (value: unknown) => {
+        if (typeof value !== 'string') return value;
+        let cleaned = value.trim();
+        if (
+          (cleaned.startsWith('`') && cleaned.endsWith('`')) ||
+          (cleaned.startsWith('"') && cleaned.endsWith('"')) ||
+          (cleaned.startsWith("'") && cleaned.endsWith("'"))
+        ) {
+          cleaned = cleaned.slice(1, -1).trim();
+        }
+        return cleaned;
+      };
+
+      const sanitizedForm = Object.fromEntries(
+        Object.entries(formData).map(([key, value]) => [key, sanitizeValue(value)])
+      );
+
+      const missingRequired = selectedModel.fields
+        .filter(field => field.required)
+        .filter(field => {
+          const value = sanitizedForm[field.name];
+          return value === undefined || value === null || String(value).trim() === '';
+        });
+
+      if (missingRequired.length > 0) {
+        setError(`Field wajib belum diisi: ${missingRequired.map(field => field.label).join(', ')}`);
+        setIsGenerating(false);
+        return;
+      }
+
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       if (apiKey) headers['x-api-key'] = apiKey;
 
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers,
-        body: JSON.stringify({ model: selectedModel.id, ...formData }),
+        body: JSON.stringify({ model: selectedModel.id, ...sanitizedForm }),
       });
 
       const result = await res.json();
