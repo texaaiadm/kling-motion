@@ -36,6 +36,7 @@ export default function HomePage() {
   const [error, setError] = useState<string | null>(null);
   const [apiKey, setApiKey] = useState('');
   const [apiKeySaved, setApiKeySaved] = useState(false);
+  const [showApiKey, setShowApiKey] = useState(false);
   const [uploadStates, setUploadStates] = useState<Record<string, UploadState>>({});
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollErrorCountRef = useRef(0);
@@ -386,32 +387,35 @@ export default function HomePage() {
       </header>
 
       {/* API Key */}
-      {!apiKeySaved && (
-        <div className="api-key-section fade-in">
-          <label>🔑 Token Dari Admin TEXA</label>
-          <div className="api-key-row">
-            <input
-              type="password"
-              className="form-input"
-              value={apiKey}
-              onChange={e => setApiKey(e.target.value)}
-              placeholder="Masukkan token dari admin TEXA..."
-            />
-            <button className="api-key-btn" onClick={saveApiKey}>Simpan</button>
-          </div>
+      <div
+        className="api-key-section fade-in"
+        style={apiKeySaved ? { borderColor: 'rgba(34,197,94,0.2)', background: 'rgba(34,197,94,0.05)' } : undefined}
+      >
+        <label style={apiKeySaved ? { color: 'var(--success)' } : undefined}>
+          {apiKeySaved ? '✅ TOKEN TERSIMPAN' : '🔑 Token Dari Admin TEXA'}
+        </label>
+        <div className="api-key-row">
+          <input
+            type={showApiKey ? 'text' : 'password'}
+            className="form-input"
+            value={apiKey}
+            onChange={e => {
+              setApiKey(e.target.value);
+              if (apiKeySaved) setApiKeySaved(false);
+            }}
+            placeholder="Masukkan token dari admin TEXA..."
+          />
+          <button
+            className="api-key-btn"
+            onClick={() => setShowApiKey(prev => !prev)}
+          >
+            {showApiKey ? '🙈 Sembunyikan' : '👁️ Intip'}
+          </button>
+          <button className="api-key-btn" onClick={saveApiKey}>
+            {apiKeySaved ? 'Perbarui' : 'Simpan'}
+          </button>
         </div>
-      )}
-      {apiKeySaved && (
-        <div className="api-key-section fade-in" style={{ borderColor: 'rgba(34,197,94,0.2)', background: 'rgba(34,197,94,0.05)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <label style={{ color: 'var(--success)', marginBottom: 0 }}>✅ TOKEN TERSIMPAN</label>
-            <button className="api-key-btn" style={{ borderColor: 'rgba(34,197,94,0.3)', color: 'var(--success)', background: 'rgba(34,197,94,0.1)' }}
-              onClick={() => { setApiKeySaved(false); }}>
-              Ubah
-            </button>
-          </div>
-        </div>
-      )}
+      </div>
 
       {/* Model Selector */}
       <div className="model-selector">
