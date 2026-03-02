@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TEXA Motion Control</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-color: #0f1115;
+            --surface: rgba(255, 255, 255, 0.03);
+            --surface-hover: rgba(255, 255, 255, 0.05);
+            --surface-active: rgba(255, 255, 255, 0.08);
+            --border: rgba(255, 255, 255, 0.08);
+            --border-highlight: rgba(255, 255, 255, 0.15);
+            --text-primary: #ffffff;
+            --text-secondary: #94a3b8;
+            --accent: #3b82f6;
+            --accent-glow: rgba(59, 130, 246, 0.5);
+            --success: #10b981;
+            --danger: #ef4444;
+            --radius-md: 12px;
+            --radius-lg: 20px;
+            --font-main: 'Outfit', sans-serif;
+            --glass-bg: rgba(15, 17, 21, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.08);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-main);
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+            background-image:
+                radial-gradient(circle at 15% 50%, rgba(59, 130, 246, 0.08), transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(139, 92, 246, 0.08), transparent 25%);
+            background-attachment: fixed;
+            overflow-x: hidden;
+        }
+
+        /* Glassmorphism Utilities */
+        .glass-panel {
+            background: var(--surface);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            padding: 24px;
+            transition: all 0.3s ease;
+        }
+
+        .glass-panel:hover {
+            border-color: var(--border-highlight);
+        }
+
+        /* Layout */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 32px;
+            align-items: start;
+        }
+
+        @media (max-width: 992px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Header */
+        header {
+            grid-column: 1 / -1;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding-bottom: 24px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .logo-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            box-shadow: 0 0 20px var(--accent-glow);
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            background: linear-gradient(to right, #fff, #94a3b8);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            letter-spacing: -0.5px;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-weight: 400;
+        }
+
+        header .controls {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+
+        /* Forms & Inputs */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .input-wrap {
+            position: relative;
+        }
+
+        .input-wrap i {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        input[type="text"],
+        input[type="password"],
+        select,
+        textarea {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            border-radius: var(--radius-md);
+            padding: 12px 14px;
+            font-family: inherit;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+
+        .input-wrap input,
+        .input-wrap select {
+            padding-left: 40px;
+        }
+
+        select option {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+            background: rgba(0, 0, 0, 0.4);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        /* Range Slider */
+        .range-wrap {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        input[type="range"] {
+            flex: 1;
+            -webkit-appearance: none;
+            appearance: none;
+            height: 6px;
+            background: var(--surface-active);
+            border-radius: 4px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #fff;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .range-value {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--accent);
+            background: rgba(59, 130, 246, 0.1);
+            padding: 4px 10px;
+            border-radius: 6px;
+            min-width: 45px;
+            text-align: center;
+        }
+
+        /* File Upload Areas */
+        .upload-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        @media (max-width: 768px) {
+            .upload-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .upload-zone {
+            border: 2px dashed var(--border);
+            border-radius: var(--radius-lg);
+            padding: 32px 20px;
+            text-align: center;
+            background: rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .upload-zone:hover,
+        .upload-zone.dragover {
+            border-color: var(--accent);
+            background: rgba(59, 130, 246, 0.05);
+        }
+
+        .upload-icon {
+            font-size: 32px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            transition: transform 0.3s ease;
+        }
+
+        .upload-zone:hover .upload-icon {
+            transform: translateY(-5px);
+            color: var(--accent);
+        }
+
+        .upload-title {
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 6px;
+        }
+
+        .upload-desc {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .file-input {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+            z-index: 10;
+        }
+
+        .preview-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: var(--radius-lg);
+            z-index: 5;
+            background: #000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .preview-container img,
+        .preview-container video {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .upload-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 20;
+            pointer-events: none;
+        }
+
+        .upload-zone:hover .preview-container+.upload-overlay {
+            opacity: 1;
+        }
+
+        .upload-progress {
+            width: 80%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .upload-progress-bar {
+            height: 100%;
+            width: 0%;
+            background: var(--accent);
+            border-radius: 4px;
+            transition: width 0.3s;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 14px 24px;
+            font-family: inherit;
+            font-size: 15px;
+            font-weight: 600;
+            border-radius: var(--radius-md);
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6, #6366f1);
+            color: white;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+        }
+
+        .btn-primary:disabled {
+            background: var(--surface-active);
+            color: var(--text-secondary);
+            box-shadow: none;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Task & Result Section */
+        .workspace {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .task-status-card {
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 24px;
+            border-left: 4px solid var(--accent);
+            background: linear-gradient(to right, rgba(59, 130, 246, 0.1), transparent);
+        }
+
+        .status-info {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .status-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: var(--accent);
+        }
+
+        .status-icon.spinning i {
+            animation: spin 2s linear infinite;
+        }
+
+        @keyframes spin {
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .status-text h3 {
+            font-size: 16px;
+            margin-bottom: 2px;
+        }
+
+        .status-text p {
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-family: monospace;
+        }
+
+        .result-container {
+            display: none;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .video-wrapper {
+            position: relative;
+            width: 100%;
+            background: #000;
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            aspect-ratio: 16/9;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--border);
+        }
+
+        .video-wrapper video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .download-btn {
+            align-self: flex-start;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 100px;
+            font-size: 14px;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+            border: 1px solid var(--border);
+        }
+
+        .download-btn:hover {
+            background: white;
+            color: black;
+        }
+
+        /* Badge */
+        .pro-badge {
+            background: linear-gradient(135deg, #f59e0b, #ef4444);
+            color: white;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 100px;
+            margin-left: 8px;
+            vertical-align: middle;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Error/Toast */
+        #toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: var(--danger);
+            color: white;
+            padding: 14px 24px;
+            border-radius: var(--radius-md);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            z-index: 1000;
+        }
+
+        #toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <header>
+            <div class="logo-area">
+                <div class="logo-icon"><img
+                        src="https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHoyMzhqaHRhNjNhZGhhc25uN2V0YWFzdHM3NGh2djQ5YzZpaWF5dyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/8abFKTU8TuZWoYB07A/giphy.gif"
+                        alt="Logo" style="width: 100%; height: 100%; border-radius: 14px; object-fit: cover;"></div>
+                <div>
+                    <h1>TEXA Motion Control</h1>
+                    <div class="subtitle">Powered by Kling 2.6 <span class="pro-badge">AI</span></div>
+                </div>
+            </div>
+            <div class="controls" style="position: relative;">
+                <!-- Collapsible Settings -->
+                <button id="apiToggleBtn"
+                    style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 10px 16px; color: var(--text-primary); cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s; font-family: inherit; font-size: 14px;">
+                    <i class="fa-solid fa-gear"></i> Settings <i class="fa-solid fa-chevron-down" id="apiToggleIcon"
+                        style="font-size: 12px; transition: transform 0.3s; margin-left: 4px;"></i>
+                </button>
+
+                <div id="apiSettingsDropdown"
+                    style="position: absolute; top: calc(100% + 10px); right: 0; background: var(--surface); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 16px; width: 320px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4); opacity: 0; visibility: hidden; transform: translateY(-10px); transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 100;">
+
+                    <div class="input-wrap" style="display: flex; align-items: center; gap: 8px;">
+                        <div style="position: relative; flex: 1;">
+                            <input type="password" id="apiKey" placeholder="dapatkan token dari admin"
+                                autocomplete="off"
+                                style="width: 100%; border-radius: var(--radius-md); background: rgba(0, 0, 0, 0.3); border: 1px solid var(--border); color: var(--text-primary); padding: 10px 14px; font-family: inherit; font-size: 13px;">
+                        </div>
+                        <!-- Hidden elements to preserve JS logic without breaking UI -->
+                        <button id="apiStatusBtn" style="display: none;"></button>
+                        <i id="apiStatusIcon" style="display: none;"></i>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Sidebar Settings -->
+        <aside class="glass-panel">
+            <div class="form-group">
+                <label for="modelSelect">AI Model</label>
+                <div class="input-wrap">
+                    <i class="fa-solid fa-microchip"></i>
+                    <select id="modelSelect">
+                        <option value="kling-v2-6-motion-control-pro">Kling 2.6 Pro</option>
+                        <option value="kling-v2-6-motion-control-std">Kling 2.6 Standard</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="orientationSelect">Output Orientation</label>
+                <div class="input-wrap">
+                    <i class="fa-solid fa-crop"></i>
+                    <select id="orientationSelect">
+                        <option value="video">Match Video (Max 30s)</option>
+                        <option value="image">Match Image (Max 10s)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="cfgScale">CFG Scale (Guidance)</label>
+                <div class="range-wrap">
+                    <input type="range" id="cfgScale" min="0" max="1" step="0.1" value="0.5">
+                    <div class="range-value" id="cfgValue">0.5</div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="promptInput">Motion Prompt (Optional)</label>
+                <textarea id="promptInput" placeholder="Describe the desired motion or style..."></textarea>
+            </div>
+
+            <button id="generateBtn" class="btn btn-primary">
+                <i class="fa-solid fa-bolt"></i> Generate Motion
+            </button>
+        </aside>
+
+        <!-- Main Workspace -->
+        <main class="workspace">
+
+            <div class="glass-panel">
+                <div class="upload-grid">
+                    <!-- Image Input -->
+                    <div class="upload-zone" id="imageZone">
+                        <input type="file" class="file-input" id="imageInput"
+                            accept="image/jpeg, image/png, image/webp">
+
+                        <i class="fa-regular fa-image upload-icon"></i>
+                        <div class="upload-title">Character Image</div>
+                        <div class="upload-desc">Min 300x300, Tanpa Batas Ukuran</div>
+
+                        <div class="upload-progress" id="imageProgressContainer">
+                            <div class="upload-progress-bar" id="imageProgressBar"></div>
+                        </div>
+
+                        <div class="preview-container" id="imagePreview"></div>
+                        <div class="upload-overlay">
+                            <i class="fa-solid fa-pen" style="font-size: 24px; margin-bottom: 8px;"></i>
+                            <span>Click to change</span>
+                        </div>
+                    </div>
+
+                    <!-- Video Input -->
+                    <div class="upload-zone" id="videoZone">
+                        <input type="file" class="file-input" id="videoInput"
+                            accept="video/mp4, video/webm, video/quicktime">
+
+                        <i class="fa-solid fa-film upload-icon"></i>
+                        <div class="upload-title">Reference Video</div>
+                        <div class="upload-desc">3-30 seconds duration</div>
+
+                        <div class="upload-progress" id="videoProgressContainer">
+                            <div class="upload-progress-bar" id="videoProgressBar"></div>
+                        </div>
+
+                        <div class="preview-container" id="videoPreview"></div>
+                        <div class="upload-overlay">
+                            <i class="fa-solid fa-pen" style="font-size: 24px; margin-bottom: 8px;"></i>
+                            <span>Click to change</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Task Status -->
+            <div class="glass-panel task-status-card" id="taskStatusCard">
+                <div class="status-info">
+                    <div class="status-icon spinning" id="statusIcon">
+                        <i class="fa-solid fa-circle-notch"></i>
+                    </div>
+                    <div class="status-text">
+                        <h3 id="statusTitle">Task Created</h3>
+                        <p id="taskIdDisplay">ID: initializing...</p>
+                    </div>
+                </div>
+                <div class="status-badge" style="color: var(--accent); font-weight: 600;" id="statusText">
+                    IN_PROGRESS
+                </div>
+            </div>
+
+            <!-- Result Player -->
+            <div class="glass-panel result-container" id="resultContainer">
+                <h3 style="margin-bottom: 8px;"><i class="fa-solid fa-video"
+                        style="color: var(--accent); margin-right: 8px;"></i> Animated Result</h3>
+                <div class="video-wrapper">
+                    <video id="resultVideo" controls autoplay loop playsinline></video>
+                </div>
+                <a href="#" class="download-btn" id="downloadBtn" target="_blank" download="texa_kling.mp4">
+                    <i class="fa-solid fa-download"></i> Download Video
+                </a>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast">
+        <i class="fa-solid fa-circle-exclamation"></i>
+        <span id="toastMessage">An error occurred</span>
+    </div>
+
+    <script>
+        // --- Local CORS Proxy (run proxy.js with: node proxy.js) ---
+        const API_BASE = 'http://localhost:3001/api';
+
+        // --- State Management ---
+        const state = {
+            apiKey: localStorage.getItem('texa_freepik_key') || '',
+            imageCatboxUrl: null,
+            videoCatboxUrl: null,
+            currentTaskId: null,
+            pollingInterval: null
+        };
+
+        // --- DOM Elements ---
+        const els = {
+            apiKey: document.getElementById('apiKey'),
+            cfgScale: document.getElementById('cfgScale'),
+            cfgValue: document.getElementById('cfgValue'),
+            generateBtn: document.getElementById('generateBtn'),
+            toast: document.getElementById('toast'),
+            toastMsg: document.getElementById('toastMessage'),
+
+            // Uploads
+            imageInput: document.getElementById('imageInput'),
+            videoInput: document.getElementById('videoInput'),
+            imagePreview: document.getElementById('imagePreview'),
+            videoPreview: document.getElementById('videoPreview'),
+            imageZone: document.getElementById('imageZone'),
+            videoZone: document.getElementById('videoZone'),
+
+            // Task Status
+            taskCard: document.getElementById('taskStatusCard'),
+            statusIcon: document.getElementById('statusIcon'),
+            statusTitle: document.getElementById('statusTitle'),
+            taskIdDisplay: document.getElementById('taskIdDisplay'),
+            statusText: document.getElementById('statusText'),
+
+            // Result
+            resultContainer: document.getElementById('resultContainer'),
+            resultVideo: document.getElementById('resultVideo'),
+            downloadBtn: document.getElementById('downloadBtn')
+        };
+
+        // --- File Upload via Custom Server (Chunk Upload) ---
+        const UPLOAD_SERVER = 'http://localhost:3001/upload';
+        const CHUNK_SIZE = 1 * 1024 * 1024; // 1MB per chunk
+
+        async function uploadToCatbox(file, progressElement) {
+            const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+            const fileId = Date.now().toString(36) + Math.random().toString(36).substr(2);
+
+            for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
+                const start = chunkIndex * CHUNK_SIZE;
+                const end = Math.min(start + CHUNK_SIZE, file.size);
+                const chunk = file.slice(start, end);
+
+                const formData = new FormData();
+                formData.append('action', 'upload_chunk');
+                formData.append('file_chunk', chunk);
+                formData.append('file_name', file.name);
+                formData.append('file_id', fileId);
+                formData.append('chunk_index', chunkIndex);
+                formData.append('total_chunks', totalChunks);
+
+                const response = await fetch(UPLOAD_SERVER, { method: 'POST', body: formData });
+                const result = await response.json();
+
+                if (result.status === 'error') {
+                    throw new Error(result.message || 'Upload gagal');
+                }
+
+                // Update progress bar
+                const percent = Math.round(((chunkIndex + 1) / totalChunks) * 100);
+                progressElement.style.width = percent + '%';
+
+                if (result.status === 'done') {
+                    return result.url; // Return the public URL
+                }
+            }
+
+            throw new Error('Upload selesai tapi tidak mendapat URL publik');
+        }
+
+        function setupDragAndDrop(zone, input, type, previewContainer) {
+            const progressContainer = zone.querySelector('.upload-progress');
+            const progressBar = zone.querySelector('.upload-progress-bar');
+
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                zone.addEventListener(eventName, preventDefaults, false);
+            });
+
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                zone.addEventListener(eventName, () => zone.classList.add('dragover'), false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                zone.addEventListener(eventName, () => zone.classList.remove('dragover'), false);
+            });
+
+            zone.addEventListener('drop', (e) => handleFiles(e.dataTransfer.files));
+            input.addEventListener('change', (e) => handleFiles(e.target.files));
+
+            async function handleFiles(files) {
+                if (!files.length) return;
+                const file = files[0];
+
+                // Validate
+                if (type === 'image' && !file.type.startsWith('image/')) {
+                    return showToast('Please upload an image file (JPG, PNG, WEBP)');
+                }
+                if (type === 'video' && !file.type.startsWith('video/')) {
+                    return showToast('Please upload a video file (MP4, WEBM, MOV)');
+                }
+
+                // UI Update
+                progressContainer.style.display = 'block';
+                progressBar.style.width = '0%';
+                previewContainer.style.display = 'flex';
+
+                // Show Local Preview Instantly
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const url = e.target.result;
+                    if (type === 'image') {
+                        previewContainer.innerHTML = `<img src="${url}" alt="Preview">`;
+                    } else {
+                        previewContainer.innerHTML = `<video src="${url}" autoplay loop muted></video>`;
+                    }
+                };
+                reader.readAsDataURL(file);
+
+                // Upload to Catbox
+                try {
+                    const catboxUrl = await uploadToCatbox(file, progressBar);
+                    if (type === 'image') state.imageCatboxUrl = catboxUrl;
+                    if (type === 'video') state.videoCatboxUrl = catboxUrl;
+                    setTimeout(() => progressContainer.style.display = 'none', 1000);
+                } catch (error) {
+                    showToast(`Failed to upload ${type}: ${error.message}`);
+                    previewContainer.style.display = 'none';
+                    progressContainer.style.display = 'none';
+                }
+            }
+        }
+
+        // --- Freepik API Integration & Task Management ---
+
+        // Start Generation Task
+        els.generateBtn.addEventListener('click', async () => {
+            if (!state.apiKey) return showToast('Masukkan token di Settings terlebih dahulu');
+            if (!state.imageCatboxUrl) return showToast('Please upload a Character Image first');
+            if (!state.videoCatboxUrl) return showToast('Please upload a Reference Video first');
+
+            const model = document.getElementById('modelSelect').value;
+            const orientation = document.getElementById('orientationSelect').value;
+            const cfgScale = parseFloat(els.cfgScale.value);
+            const prompt = document.getElementById('promptInput').value.trim();
+
+            els.generateBtn.disabled = true;
+            els.generateBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Submitting Task...';
+            els.taskCard.style.display = 'flex';
+            els.resultContainer.style.display = 'none';
+
+            // Reset status UI
+            els.statusIcon.querySelector('i').className = 'fa-solid fa-circle-notch';
+            els.statusIcon.classList.add('spinning');
+            els.statusIcon.style.color = 'var(--accent)';
+            els.statusTitle.textContent = 'Submitting Task to Freepik';
+            els.taskIdDisplay.textContent = 'Preparing payload...';
+            els.statusText.textContent = 'STARTING';
+            els.statusText.style.color = 'var(--accent)';
+
+            const payload = {
+                image_url: state.imageCatboxUrl,
+                video_url: state.videoCatboxUrl,
+                character_orientation: orientation,
+                cfg_scale: cfgScale
+            };
+
+            if (prompt) payload.prompt = prompt;
+
+            try {
+                const response = await fetch(`${API_BASE}/v1/ai/video/${model}`, {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'x-freepik-api-key': state.apiKey
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message || data.problem?.message || 'Failed to create task');
+                }
+
+                // Depending on the exact response structure of the "Create Task" endpoint (based on Freepik standard, it returns data object or just task details)
+                // Assuming response contains `data.task_id` based on standard GET structure, though docs say OK
+                const taskId = data.data?.task_id || data.task_id;
+
+                if (!taskId) throw new Error('Task ID not found in response');
+
+                state.currentTaskId = taskId;
+                els.taskIdDisplay.textContent = `ID: ${taskId}`;
+                els.statusTitle.textContent = 'Task Created Successfully';
+                els.statusText.textContent = data.data?.status || 'CREATED';
+
+                // Start Polling
+                startPollingStatus();
+
+            } catch (error) {
+                handleTaskError(error.message);
+            }
+        });
+
+        // Polling Logic
+        function startPollingStatus() {
+            if (state.pollingInterval) clearInterval(state.pollingInterval);
+
+            els.statusTitle.textContent = 'Processing Video Animation...';
+            els.taskIdDisplay.textContent = `Polling ID: ${state.currentTaskId}`;
+            els.statusText.textContent = 'IN_PROGRESS';
+
+            // Poll every 10 seconds (standard for video gen to avoid rate limits)
+            state.pollingInterval = setInterval(async () => {
+                try {
+                    const response = await fetch(`${API_BASE}/v1/ai/image-to-video/kling-v2-6/${state.currentTaskId}`, {
+                        method: 'GET',
+                        headers: {
+                            'Accept': 'application/json',
+                            'x-freepik-api-key': state.apiKey
+                        }
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        // Stop polling if we get an authentication or hard error
+                        if (response.status === 401 || response.status === 400 || response.status === 404) {
+                            throw new Error(data.message || 'API Error');
+                        }
+                        console.warn('Polling error (handled):', data);
+                        return; // skip this tick
+                    }
+
+                    const task = data.data;
+                    els.statusText.textContent = task.status;
+
+                    if (task.status === 'COMPLETED') {
+                        clearInterval(state.pollingInterval);
+                        handleTaskSuccess(task.generated[0]);
+                    } else if (task.status === 'FAILED') {
+                        throw new Error('Video generation failed on server');
+                    }
+
+                } catch (error) {
+                    clearInterval(state.pollingInterval);
+                    handleTaskError(error.message);
+                }
+            }, 10000);
+        }
+
+        // Task Completion
+        function handleTaskSuccess(videoUrl) {
+            els.statusIcon.querySelector('i').className = 'fa-solid fa-check';
+            els.statusIcon.classList.remove('spinning');
+            els.statusIcon.style.color = 'var(--success)';
+            els.statusIcon.style.background = 'rgba(16, 185, 129, 0.2)';
+
+            els.statusTitle.textContent = 'Generation Complete!';
+            els.statusText.textContent = 'COMPLETED';
+            els.statusText.style.color = 'var(--success)';
+
+            els.generateBtn.disabled = false;
+            els.generateBtn.innerHTML = '<i class="fa-solid fa-bolt"></i> Generate Another';
+
+            // Show Result
+            els.resultContainer.style.display = 'flex';
+            els.resultVideo.src = videoUrl;
+            els.downloadBtn.href = videoUrl;
+
+            // Auto-scroll to result
+            setTimeout(() => {
+                els.resultContainer.scrollIntoView({ behavior: 'smooth', block: 'end' });
+            }, 100);
+        }
+
+        // Task Error Setup
+        function handleTaskError(errorMsg) {
+            els.statusIcon.querySelector('i').className = 'fa-solid fa-xmark';
+            els.statusIcon.classList.remove('spinning');
+            els.statusIcon.style.color = 'var(--danger)';
+            els.statusIcon.style.background = 'rgba(239, 68, 68, 0.2)';
+
+            els.statusTitle.textContent = 'Task Failed';
+            els.statusText.textContent = 'FAILED';
+            els.statusText.style.color = 'var(--danger)';
+
+            showToast(`Task Failed: ${errorMsg}`);
+
+            els.generateBtn.disabled = false;
+            els.generateBtn.innerHTML = '<i class="fa-solid fa-rotate-right"></i> Try Again';
+        }
+
+        // --- Initialization ---
+        async function checkApiStatus() {
+            const btn = document.getElementById('apiStatusBtn');
+            const icon = document.getElementById('apiStatusIcon');
+            const key = state.apiKey;
+
+            if (!key) {
+                icon.style.color = 'var(--text-secondary)';
+                icon.style.boxShadow = 'none';
+                return;
+            }
+
+            // visually indicate checking
+            icon.className = 'fa-solid fa-circle-notch fa-spin';
+            icon.style.color = 'var(--accent)';
+            icon.style.boxShadow = 'none';
+
+            try {
+                // To check token, we just hit a lightweight endpoint
+                const res = await fetch(`${API_BASE}/v1/ai/image-to-video/kling-v2-6/tasks`, {
+                    headers: { 'x-freepik-api-key': key }
+                });
+                // If it's a 401 or 403, it's invalid. If it's 200 or even 400 (bad request but good auth), it's likely valid.
+                if (res.status === 401 || res.status === 403) {
+                    throw new Error('Invalid Token');
+                }
+
+                // Online
+                icon.className = 'fa-solid fa-circle';
+                icon.style.color = 'var(--success)';
+                icon.style.boxShadow = '0 0 8px rgba(16, 185, 129, 0.5)';
+            } catch (e) {
+                // Offline / Invalid
+                icon.className = 'fa-solid fa-circle';
+                icon.style.color = 'var(--danger)';
+                icon.style.boxShadow = '0 0 8px rgba(239, 68, 68, 0.5)';
+            }
+        }
+
+        function init() {
+            if (state.apiKey) {
+                els.apiKey.value = state.apiKey;
+                checkApiStatus();
+            }
+
+            // Events
+            els.apiKey.addEventListener('input', (e) => {
+                state.apiKey = e.target.value;
+                localStorage.setItem('texa_freepik_key', state.apiKey);
+            });
+
+            document.getElementById('apiStatusBtn').addEventListener('click', checkApiStatus);
+
+            // API Settings Dropdown Toggle
+            const apiToggleBtn = document.getElementById('apiToggleBtn');
+            const apiSettingsDropdown = document.getElementById('apiSettingsDropdown');
+            const apiToggleIcon = document.getElementById('apiToggleIcon');
+
+            apiToggleBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const isOpen = apiSettingsDropdown.style.visibility === 'visible';
+
+                if (isOpen) {
+                    apiSettingsDropdown.style.opacity = '0';
+                    apiSettingsDropdown.style.visibility = 'hidden';
+                    apiSettingsDropdown.style.transform = 'translateY(-10px)';
+                    apiToggleIcon.style.transform = 'rotate(0deg)';
+                    apiToggleBtn.style.background = 'var(--surface)';
+                } else {
+                    apiSettingsDropdown.style.opacity = '1';
+                    apiSettingsDropdown.style.visibility = 'visible';
+                    apiSettingsDropdown.style.transform = 'translateY(0)';
+                    apiToggleIcon.style.transform = 'rotate(180deg)';
+                    apiToggleBtn.style.background = 'var(--surface-active)';
+                }
+            });
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!apiSettingsDropdown.contains(e.target) && !apiToggleBtn.contains(e.target)) {
+                    apiSettingsDropdown.style.opacity = '0';
+                    apiSettingsDropdown.style.visibility = 'hidden';
+                    apiSettingsDropdown.style.transform = 'translateY(-10px)';
+                    apiToggleIcon.style.transform = 'rotate(0deg)';
+                    apiToggleBtn.style.background = 'var(--surface)';
+                }
+            });
+
+            // Prevent closing when clicking inside dropdown
+            apiSettingsDropdown.addEventListener('click', (e) => {
+                e.stopPropagation();
+            });
+
+            els.cfgScale.addEventListener('input', (e) => {
+                els.cfgValue.textContent = parseFloat(e.target.value).toFixed(1);
+            });
+
+            setupDragAndDrop(els.imageZone, els.imageInput, 'image', els.imagePreview);
+            setupDragAndDrop(els.videoZone, els.videoInput, 'video', els.videoPreview);
+        }
+
+        // --- Utilities ---
+        function showToast(msg, type = 'error') {
+            els.toastMsg.textContent = msg;
+            els.toast.style.background = type === 'error' ? 'var(--danger)' : 'var(--success)';
+            els.toast.querySelector('i').className = type === 'error' ? 'fa-solid fa-circle-exclamation' : 'fa-solid fa-circle-check';
+
+            els.toast.classList.add('show');
+            setTimeout(() => els.toast.classList.remove('show'), 4000);
+        }
+
+        init();
+    </script>
+</body>
+
+</html>

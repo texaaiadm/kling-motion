@@ -1,0 +1,348 @@
+<?php
+/**
+ * Advanced Single-File Uploader + Gallery
+ * Fitur: Chunk Upload (Bypass Limit), Galeri Frontend, Auto Link, All Format Image & Video, Auto-Delete 24 Jam
+ */
+
+// --- KONFIGURASI EKSTENSI (DIPERLENGKAP) ---
+$imageTypes = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'tiff', 'tif', 'svg', 'heic', 'heif', 'raw', 'ico', 'psd', 'ai', 'eps'];
+$videoTypes = ['mp4', 'webm', 'avi', 'mov', 'mkv', 'flv', 'wmv', 'm4v', '3gp', '3g2', 'ogv', 'rm', 'rmvb', 'ts', 'vob', 'asf', 'mpeg', 'mpg', 'mts', 'm2ts'];
+
+// Gabungkan semua ekstensi yang diizinkan
+$allowedTypes = array_merge($imageTypes, $videoTypes);
+
+$uploadDir = 'uploads/'; 
+
+// Deteksi URL Publik
+$protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http");
+$baseUrl = rtrim("$protocol://{$_SERVER['HTTP_HOST']}" . dirname($_SERVER['PHP_SELF']), '/');
+
+// Buat folder jika belum ada
+if (!file_exists($uploadDir)) {
+    mkdir($uploadDir, 0755, true);
+    // Amankan folder agar script PHP tidak bisa dieksekusi di dalamnya
+    file_put_contents($uploadDir . '.htaccess', "RemoveHandler .php .phtml .php3\nRemoveType .php .phtml .php3\n<Files \"*\">\n SetHandler default-handler\n</Files>");
+}
+
+// --- LOGIKA BACKEND: CHUNK UPLOAD ---
+if (isset($_POST['action']) && $_POST['action'] === 'upload_chunk') {
+    header('Content-Type: application/json');
+    try {
+        if (!isset($_FILES['file_chunk']) || $_FILES['file_chunk']['error'] !== 0) throw new Exception("Gagal menerima data.");
+
+        $fileId = preg_replace('/[^a-zA-Z0-9]/', '', $_POST['file_id']);
+        $fileName = $_POST['file_name'];
+        $chunkIndex = (int)$_POST['chunk_index'];
+        $totalChunks = (int)$_POST['total_chunks'];
+        $ext = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+
+        if ($chunkIndex === 0 && !in_array($ext, $allowedTypes)) throw new Exception("Format file tidak diizinkan. Hanya gambar dan video.");
+
+        $tempFilePath = $uploadDir . 'temp_' . $fileId;
+        $out = fopen($tempFilePath, $chunkIndex === 0 ? "wb" : "ab");
+        $in = fopen($_FILES['file_chunk']['tmp_name'], "rb");
+
+        if ($out && $in) {
+            stream_copy_to_stream($in, $out);
+            fclose($in); fclose($out);
+            unlink($_FILES['file_chunk']['tmp_name']);
+        } else {
+            throw new Exception("Gagal menulis ke server.");
+        }
+
+        if ($chunkIndex === $totalChunks - 1) {
+            $finalName = uniqid('file_', true) . '.' . $ext;
+            rename($tempFilePath, $uploadDir . $finalName);
+            echo json_encode([
+                'status' => 'done', 
+                'url' => $baseUrl . '/' . $uploadDir . $finalName,
+                'type' => in_array($ext, $videoTypes) ? 'video' : 'image' // Menggunakan array dinamis
+            ]);
+        } else {
+            echo json_encode(['status' => 'chunk_success']);
+        }
+    } catch (Exception $e) {
+        http_response_code(500);
+        echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+    }
+    exit;
+}
+
+// --- LOGIKA BACKEND: SCAN GALERI & AUTO DELETE ---
+$galleryItems = [];
+if (is_dir($uploadDir)) {
+    $files = scandir($uploadDir);
+    $now = time();
+    $expirationTime = 24 * 60 * 60; // 24 Jam dalam satuan detik (86400 detik)
+
+    foreach ($files as $f) {
+        if ($f == '.' || $f == '..' || $f == '.htaccess') continue;
+        
+        $filePath = $uploadDir . $f;
+        $fileAge = $now - filemtime($filePath);
+
+        // FITUR AUTO DELETE: Hapus file jika usianya sudah melebihi 24 jam
+        if ($fileAge >= $expirationTime) {
+            unlink($filePath);
+            continue; // Lewati sisa loop agar file tidak masuk ke galeri
+        }
+
+        // Abaikan file sementara (temp chunk) agar tidak masuk ke list galeri
+        if (strpos($f, 'temp_') === 0) continue;
+
+        $ext = strtolower(pathinfo($f, PATHINFO_EXTENSION));
+        if (in_array($ext, $allowedTypes)) {
+            $galleryItems[] = [
+                'name' => $f,
+                'url' => $baseUrl . '/' . $filePath,
+                'type' => in_array($ext, $videoTypes) ? 'video' : 'image', // Menggunakan array dinamis
+                'time' => filemtime($filePath),
+                'expires_in' => $expirationTime - $fileAge // Sisa waktu sebelum dihapus (detik)
+            ];
+        }
+    }
+    // Urutkan: Terbaru paling atas
+    usort($galleryItems, function($a, $b) { return $b['time'] - $a['time']; });
+}
+?>
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Uploader & Galeri</title>
+    <style>
+        :root { --primary: #4f46e5; --bg: #f8fafc; --text: #334155; --card: #ffffff; --danger: #ef4444; }
+        body { font-family: sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 2rem 1rem; }
+        .main-wrapper { max-width: 900px; margin: 0 auto; }
+        
+        /* Upload Section */
+        .upload-card { background: var(--card); padding: 2rem; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); text-align: center; margin-bottom: 3rem; }
+        .upload-area { border: 2px dashed #cbd5e1; padding: 2rem; border-radius: 8px; cursor: pointer; transition: 0.3s; position: relative; background: #f1f5f9; }
+        .upload-area:hover { border-color: var(--primary); background: #eef2ff; }
+        .upload-area input { position: absolute; width: 100%; height: 100%; top: 0; left: 0; opacity: 0; cursor: pointer; }
+        .btn { background: var(--primary); color: white; padding: 0.8rem 2rem; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 1rem; font-size: 1rem; }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        
+        /* Progress & Alert */
+        .progress-box { margin-top: 1rem; display: none; }
+        .progress-bar { height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--primary); width: 0%; transition: width 0.2s; }
+        .alert { margin-top: 1rem; padding: 1rem; border-radius: 6px; display: none; font-size: 0.9rem; }
+        .alert-success { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+        .alert-error { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+
+        /* Gallery Section */
+        .gallery-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; }
+        .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1.5rem; }
+        .card { background: var(--card); border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; display: flex; flex-direction: column; position: relative; }
+        .media-wrap { height: 160px; background: #000; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
+        .media-wrap img, .media-wrap video { width: 100%; height: 100%; object-fit: cover; }
+        .video-badge { position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.7); color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; }
+        
+        /* Expiration Badge */
+        .expire-badge { position: absolute; top: 8px; left: 8px; background: var(--danger); color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; z-index: 10; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+
+        .card-body { padding: 0.8rem; display: flex; flex-direction: column; gap: 0.5rem; flex: 1; }
+        .link-row { display: flex; gap: 0.3rem; }
+        .link-input { width: 100%; padding: 4px 8px; font-size: 0.8rem; border: 1px solid #cbd5e1; border-radius: 4px; background: #f8fafc; color: #64748b; }
+        .copy-btn { padding: 4px 8px; font-size: 0.8rem; background: var(--primary); color: white; border: none; border-radius: 4px; cursor: pointer; white-space: nowrap; }
+        .copy-btn:hover { opacity: 0.9; }
+        .copy-btn.copied { background: #16a34a; }
+        .filename { font-size: 0.8rem; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 2px; }
+        .empty-gallery { text-align: center; color: #94a3b8; padding: 2rem; grid-column: 1/-1; }
+        
+        /* Fallback for unplayable media */
+        .unplayable-media { color: white; font-size: 0.8rem; text-align: center; padding: 10px; }
+        .notice-danger { color: var(--danger); font-size: 0.85rem; font-weight: 600; margin-top: 5px; }
+    </style>
+</head>
+<body>
+
+<div class="main-wrapper">
+    <!-- Upload Section -->
+    <div class="upload-card">
+        <h2 style="color: var(--primary); margin-top: 0;">Upload File</h2>
+        <p style="color: #64748b; margin-bottom: 0.5rem;">Mendukung Semua Format Gambar & Video (Chunk Upload)</p>
+        <div class="notice-danger" style="margin-bottom: 1.5rem;">⚠️ File akan dihapus secara otomatis dalam 24 Jam.</div>
+        
+        <div class="upload-area" id="dropArea">
+            <div style="font-size: 3rem; margin-bottom: 0.5rem;">📁</div>
+            <p id="fileLabel" style="margin: 0;">Klik atau Tarik file ke sini</p>
+            <input type="file" id="fileInput" accept="image/*,video/*">
+        </div>
+
+        <div class="progress-box" id="progressBox">
+            <div class="progress-bar"><div class="progress-fill" id="progressBar"></div></div>
+            <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-top: 0.5rem; color: #64748b;">
+                <span id="progressStatus">Mengunggah...</span>
+                <span id="progressPercent">0%</span>
+            </div>
+        </div>
+
+        <div class="alert alert-success" id="successBox">
+            <strong>✅ Upload Berhasil!</strong><br>
+            <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                <input type="text" id="resultLink" class="link-input" readonly onclick="this.select()">
+                <button class="copy-btn" onclick="copyResult()">Salin</button>
+            </div>
+        </div>
+        <div class="alert alert-error" id="errorBox"></div>
+
+        <button class="btn" id="uploadBtn" onclick="startUpload()">Mulai Upload</button>
+    </div>
+
+    <!-- Gallery Section -->
+    <div class="gallery-header">
+        <h3 style="margin: 0; color: #334155;">Galeri (<?php echo count($galleryItems); ?> File)</h3>
+        <small style="color: #64748b;">Diurutkan dari terbaru</small>
+    </div>
+
+    <div class="gallery-grid">
+        <?php if (empty($galleryItems)): ?>
+            <div class="empty-gallery">Belum ada file yang diunggah.</div>
+        <?php else: ?>
+            <?php foreach ($galleryItems as $item): 
+                // Format sisa waktu
+                $hoursLeft = floor($item['expires_in'] / 3600);
+                $minutesLeft = floor(($item['expires_in'] % 3600) / 60);
+                $expiresText = $hoursLeft > 0 ? "Sisa ${hoursLeft}j ${minutesLeft}m" : "Sisa ${minutesLeft}m";
+            ?>
+            <div class="card">
+                <div class="expire-badge" title="File akan terhapus setelah batas waktu habis"><?php echo $expiresText; ?></div>
+                <div class="media-wrap">
+                    <?php if ($item['type'] === 'video'): ?>
+                        <video src="<?php echo $item['url']; ?>" controls muted preload="metadata">
+                            <div class="unplayable-media">Video tidak didukung browser. Silakan buka tab baru untuk mengunduh.</div>
+                        </video>
+                        <div class="video-badge">VIDEO</div>
+                    <?php else: ?>
+                        <img src="<?php echo $item['url']; ?>" loading="lazy" alt="Image">
+                    <?php endif; ?>
+                </div>
+                <div class="card-body">
+                    <div class="filename" title="<?php echo $item['name']; ?>"><?php echo $item['name']; ?></div>
+                    <div class="link-row">
+                        <input type="text" value="<?php echo $item['url']; ?>" class="link-input" readonly onclick="this.select()">
+                        <button class="copy-btn" onclick="copyToClipboard('<?php echo $item['url']; ?>', this)">Salin</button>
+                    </div>
+                    <div style="margin-top: 5px; text-align: right;">
+                        <a href="<?php echo $item['url']; ?>" target="_blank" style="font-size: 0.75rem; color: var(--primary); text-decoration: none;">Buka & Unduh &rarr;</a>
+                    </div>
+                </div>
+            </div>
+            <?php endforeach; ?>
+        <?php endif; ?>
+    </div>
+</div>
+
+<script>
+    const CHUNK_SIZE = 1 * 1024 * 1024; 
+    const fileInput = document.getElementById('fileInput');
+    const uploadBtn = document.getElementById('uploadBtn');
+    
+    fileInput.addEventListener('change', () => {
+        if(fileInput.files.length) {
+            document.getElementById('fileLabel').innerText = fileInput.files[0].name;
+            document.getElementById('dropArea').style.borderColor = "#4f46e5";
+            document.getElementById('dropArea').style.background = "#eef2ff";
+        }
+    });
+
+    async function startUpload() {
+        if (!fileInput.files.length) return alert("Pilih file dulu!");
+        
+        const file = fileInput.files[0];
+        const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+        const fileId = Date.now().toString(36) + Math.random().toString(36).substr(2);
+        
+        resetUI();
+        uploadBtn.disabled = true;
+
+        let chunkIndex = 0;
+        while (chunkIndex < totalChunks) {
+            try {
+                const start = chunkIndex * CHUNK_SIZE;
+                const end = Math.min(start + CHUNK_SIZE, file.size);
+                const chunk = file.slice(start, end);
+                const formData = new FormData();
+                
+                formData.append('action', 'upload_chunk');
+                formData.append('file_chunk', chunk);
+                formData.append('file_name', file.name);
+                formData.append('file_id', fileId);
+                formData.append('chunk_index', chunkIndex);
+                formData.append('total_chunks', totalChunks);
+
+                const response = await fetch('', { method: 'POST', body: formData });
+                const result = await response.json();
+
+                if (result.status === 'error') throw new Error(result.message);
+                
+                if (result.status === 'done') {
+                    showSuccess(result.url);
+                    return;
+                }
+
+                chunkIndex++;
+                const percent = Math.round((chunkIndex / totalChunks) * 100);
+                updateProgress(percent);
+
+            } catch (err) {
+                console.error(err);
+                showError("Gagal: " + err.message);
+                uploadBtn.disabled = false;
+                return;
+            }
+        }
+    }
+
+    function resetUI() {
+        document.getElementById('errorBox').style.display = 'none';
+        document.getElementById('successBox').style.display = 'none';
+        document.getElementById('progressBox').style.display = 'block';
+        updateProgress(0);
+    }
+
+    function updateProgress(percent) {
+        document.getElementById('progressBar').style.width = percent + "%";
+        document.getElementById('progressPercent').innerText = percent + "%";
+    }
+
+    function showSuccess(url) {
+        document.getElementById('progressBox').style.display = 'none';
+        document.getElementById('successBox').style.display = 'block';
+        document.getElementById('resultLink').value = url;
+        uploadBtn.disabled = false;
+        uploadBtn.innerText = "Upload Lagi";
+        
+        // Reload page after 1.5s to show in gallery
+        setTimeout(() => location.reload(), 1500); 
+    }
+
+    function showError(msg) {
+        document.getElementById('progressBox').style.display = 'none';
+        document.getElementById('errorBox').innerText = msg;
+        document.getElementById('errorBox').style.display = 'block';
+    }
+
+    function copyResult() {
+        copyToClipboard(document.getElementById('resultLink').value, document.querySelector('#successBox .copy-btn'));
+    }
+
+    function copyToClipboard(text, btnElement) {
+        navigator.clipboard.writeText(text).then(() => {
+            const originalText = btnElement.innerText;
+            btnElement.innerText = "Oke!";
+            btnElement.classList.add('copied');
+            setTimeout(() => {
+                btnElement.innerText = originalText;
+                btnElement.classList.remove('copied');
+            }, 2000);
+        });
+    }
+</script>
+
+</body>
+</html>
